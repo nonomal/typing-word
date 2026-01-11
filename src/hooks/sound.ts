@@ -1,10 +1,7 @@
-import {onMounted, watch, watchEffect} from "vue"
-import {useSettingStore} from "@/stores/setting.ts";
-import {PronunciationApi} from "@/types.ts";
-import beep from "@/assets/sound/beep.wav";
-import correct from "@/assets/sound/correct.wav";
-import {$ref} from "vue/macros";
-import {SoundFileOptions} from "@/utils/const.ts";
+import {onMounted, watchEffect} from "vue"
+import {useSettingStore} from "@/stores/setting";
+
+import { PronunciationApi, SoundFileOptions } from '@/config/env'
 
 export function useSound(audioSrcList?: string[], audioFileLength?: number) {
   let audioList: HTMLAudioElement[] = $ref([])
@@ -15,6 +12,7 @@ export function useSound(audioSrcList?: string[], audioFileLength?: number) {
     if (audioSrcList) setAudio(audioSrcList, audioFileLength)
   })
 
+  //这里同一个音频弄好几份是为了快速打字是，可同时发音
   function setAudio(audioSrcList2: string[], audioFileLength2?: number) {
     if (audioFileLength2) audioLength = audioFileLength2
     audioList = []
@@ -25,6 +23,7 @@ export function useSound(audioSrcList?: string[], audioFileLength?: number) {
   }
 
   function play(volume: number = 100) {
+    console.log('play', audioList)
     index++
     if (audioList.length > 1 && audioList.length !== audioLength) {
       audioList[index % audioList.length].volume = volume / 100
@@ -35,7 +34,7 @@ export function useSound(audioSrcList?: string[], audioFileLength?: number) {
     }
   }
 
-  return {play, setAudio}
+  return { play, setAudio }
 }
 
 
@@ -48,7 +47,7 @@ export function usePlayKeyboardAudio() {
       settingStore.keyboardSoundFile = '机械键盘2'
     }
     let urlList = getAudioFileUrl(settingStore.keyboardSoundFile)
-    setAudio(urlList, urlList.length === 1 ? 3 : 1)
+    setAudio(urlList, urlList.length === 1 ? 4 : 1)
   })
 
   function playAudio() {
@@ -62,7 +61,7 @@ export function usePlayKeyboardAudio() {
 
 export function usePlayBeep() {
   const settingStore = useSettingStore()
-  const {play} = useSound([beep], 1)
+  const {play} = useSound([`/sound/beep.wav`], 1)
 
   function playAudio() {
     if (settingStore.effectSound) {
@@ -75,7 +74,7 @@ export function usePlayBeep() {
 
 export function usePlayCorrect() {
   const settingStore = useSettingStore()
-  const {play} = useSound([correct], 1)
+  const {play} = useSound([`/sound/correct.wav`], 1)
 
   function playAudio() {
     if (settingStore.effectSound) {
@@ -91,14 +90,19 @@ export function usePlayWordAudio() {
   const audio = $ref(new Audio())
 
   function playAudio(word: string) {
-    if (settingStore.wordSoundType === 'uk') {
-      audio.src = `${PronunciationApi}${word}&type=1`
-    } else if (settingStore.wordSoundType === 'us') {
-      audio.src = `${PronunciationApi}${word}&type=2`
+    if (!word) return
+    let url = `${PronunciationApi}${word}&type=2`
+    if (settingStore.soundType === 'uk') {
+      url = `${PronunciationApi}${word}&type=1`
     }
+    audio.src = url
     audio.volume = settingStore.wordSoundVolume / 100
     audio.playbackRate = settingStore.wordSoundSpeed
     audio.play()
+    audio.onerror = (e) => {
+      const ttsPlay = useTTsPlayAudio()
+      ttsPlay(word)
+    }
   }
 
   return playAudio
@@ -106,22 +110,27 @@ export function usePlayWordAudio() {
 
 export function useTTsPlayAudio() {
   let isPlay = $ref(false)
+  const settingStore = useSettingStore()
 
   function play(text: string) {
-    // if (isPlay) {
-    //   isPlay = false
-    //   return window.speechSynthesis.pause();
-    // }
+    if (isPlay) {
+      isPlay = false
+      window.speechSynthesis.pause();
+    }
     let msg = new SpeechSynthesisUtterance();
     msg.text = text
-    msg.rate = 1;
+    msg.rate = settingStore.wordSoundSpeed;
+    msg.volume = settingStore.wordSoundVolume / 100
     msg.pitch = 1;
-    // msg.lang = 'en-US';
-    msg.lang = 'zh-CN';
+    msg.lang = 'en-US';
+    const voices = speechSynthesis.getVoices();
+    let r = voices.find(v => v.name.includes("Female") || v.lang === "en-US");
+    if (r) {
+      msg.voice = r
+    }
     isPlay = true
     window.speechSynthesis.speak(msg);
     console.log('text', text)
-
   }
 
   return play
@@ -134,35 +143,12 @@ export function usePlayAudio(url: string) {
 export function getAudioFileUrl(name: string) {
   if (name === '机械键盘') {
     return [
-      `./sound/key-sounds/jixie/机械0.mp3`,
-      `./sound/key-sounds/jixie/机械1.mp3`,
-      `./sound/key-sounds/jixie/机械2.mp3`,
-      `./sound/key-sounds/jixie/机械3.mp3`,
+      `/sound/key-sounds/jixie/机械0.mp3`,
+      `/sound/key-sounds/jixie/机械1.mp3`,
+      `/sound/key-sounds/jixie/机械2.mp3`,
+      `/sound/key-sounds/jixie/机械3.mp3`,
     ]
   } else {
-    return [`./sound/key-sounds/${name}.mp3`]
+    return [`/sound/key-sounds/${name}.mp3`]
   }
-}
-
-export function useWatchAllSound() {
-  const settingStore = useSettingStore()
-
-  watch([
-    () => settingStore.wordSound,
-    () => settingStore.keyboardSound,
-    () => settingStore.translateSound,
-    () => settingStore.effectSound,
-  ], (n) => {
-    settingStore.allSound = n.some(v => v);
-  })
-}
-
-export function useChangeAllSound(e: boolean) {
-  const settingStore = useSettingStore()
-
-  settingStore.allSound = e
-  settingStore.wordSound = e
-  settingStore.keyboardSound = e
-  settingStore.translateSound = e
-  settingStore.effectSound = e
 }

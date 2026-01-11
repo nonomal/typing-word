@@ -1,28 +1,43 @@
-import {defineStore} from "pinia"
-import {Word} from "@/types.ts"
+import { defineStore } from 'pinia'
+import { useSettingStore } from './setting'
+import {WordPracticeStage} from "@/types/enum.ts";
+import { WordPracticeModeStageMap, WordPracticeStageNameMap } from '@/config/env.ts'
 
 export interface PracticeState {
-  wrongWords: Word[],
-  repeatNumber: number,
-  startDate: number,
-  total: number,
-  index: number,//当前输入的第几个，用于和total计算进度
-  inputWordNumber: number,//当前总输入了多少个单词（不包含跳过）
-  wrongWordNumber: number,
-  correctRate: number,
+  stage: WordPracticeStage
+  startDate: number
+  spend: number
+  total: number
+  newWordNumber: number
+  reviewWordNumber: number
+  writeWordNumber: number
+  inputWordNumber: number //当前总输入了多少个单词（不包含跳过）
+  wrong: number
 }
 
 export const usePracticeStore = defineStore('practice', {
   state: (): PracticeState => {
     return {
-      wrongWords: [],
-      repeatNumber: 0,
+      stage: WordPracticeStage.FollowWriteNewWord,
+      spend: 0,
       startDate: Date.now(),
-      correctRate: -1,
       total: 0,
-      index: 0,
+      newWordNumber: 0,
+      reviewWordNumber: 0,
+      writeWordNumber: 0,
       inputWordNumber: 0,
-      wrongWordNumber: 0,
+      wrong: 0,
     }
   },
+  getters: {
+    getStageName: (state) => {
+      return WordPracticeStageNameMap[state.stage]
+    },
+    nextStage: (state) => {
+      const settingStore = useSettingStore()
+      const stages = WordPracticeModeStageMap[settingStore.wordPracticeMode]
+      const index = stages.findIndex(v => v === state.stage)
+      return stages[index + 1]
+    }
+  }
 })

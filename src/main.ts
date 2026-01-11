@@ -1,31 +1,38 @@
 import {createApp} from 'vue'
-import './assets/css/style.scss'
+import './assets/css/main.scss'
+import 'virtual:uno.css';
 import App from './App.vue'
-// import Mobile from './Mobile.vue'
 import {createPinia} from "pinia"
-// import ElementPlus from 'element-plus'
-import ZH from "@/locales/zh-CN.ts";
-import {createI18n} from 'vue-i18n'
-import router from "@/router.ts";
+import router from "@/router";
 import VueVirtualScroller from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
+import './types/global.d'
+import loadingDirective from './directives/loading.tsx'
 
-const i18n = createI18n({
-  locale: 'zh-CN',
-  fallbackLocale: 'zh-CN',
-  messages: {
-    'zh-CN': ZH
-  },
-})
 
 const pinia = createPinia()
-// const app = createApp(Mobile)
 const app = createApp(App)
 
+
 app.use(VueVirtualScroller)
-// app.use(ElementPlus)
 app.use(pinia)
-app.use(i18n)
 app.use(router)
 
+app.directive('opacity', (el, binding) => {
+  el.style.opacity = binding.value ? 1 : 0
+})
+app.directive('loading', loadingDirective)
 app.mount('#app')
+
+// 注册Service Worker(pwa支持)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(registration => {
+        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+      })
+      .catch(err => {
+        console.log('ServiceWorker registration failed: ', err);
+      });
+  });
+}

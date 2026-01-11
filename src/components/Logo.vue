@@ -1,30 +1,30 @@
 <script setup lang="ts">
-import {useSettingStore} from "@/stores/setting.ts";
-import router from "@/router.ts";
+import { useSettingStore } from '@/stores/setting.ts'
+import { useRouter } from 'vue-router'
+import { IS_DEV } from '@/config/env'
 
 const settingStore = useSettingStore()
-function goHome(){
-  router.push('/')
+const router = useRouter()
+
+function goHome() {
+  if (IS_DEV) {
+    router.push('/')
+  } else {
+    location.href = window.atob('aHR0cHM6Ly90eXBld29yZHMuY2M=')
+  }
 }
 </script>
 
 <template>
-  <div class="logo" @click="goHome">
-    <img v-show="settingStore.theme === 'dark'" src="/logo-text-white.png" alt="">
-    <img v-show="settingStore.theme !== 'dark'" src="/logo-text-black.png" alt="">
+  <div class="center mb-2" @click="goHome">
+    <img v-show="settingStore.theme === 'dark'" src="/logo-text-white.png" alt="" />
+    <img v-show="settingStore.theme !== 'dark'" src="/logo-text-black.png" alt="" />
   </div>
 </template>
 
 <style scoped lang="scss">
-.logo {
-  position: fixed;
-  left: var(--space);
-  top: var(--space);
-  z-index: 1;
-
-  img {
-    cursor: pointer;
-    height: 35rem;
-  }
+img {
+  cursor: pointer;
+  height: 2rem;
 }
 </style>

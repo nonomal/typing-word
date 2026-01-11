@@ -1,14 +1,13 @@
 <script setup lang="ts">
-import Tooltip from "@/components/Tooltip.vue";
-import {Icon} from "@iconify/vue";
+import Tooltip from '@/components/base/Tooltip.vue'
 
 interface IProps {
-  keyboard?: string,
+  keyboard?: string
   active?: boolean
   disabled?: boolean
   loading?: boolean
-  size?: 'small' | 'normal' | 'large',
-  type?: 'primary' | 'link'
+  size?: 'small' | 'normal' | 'large'
+  type?: 'primary' | 'info' | 'orange'
 }
 
 withDefaults(defineProps<IProps>(), {
@@ -17,124 +16,131 @@ withDefaults(defineProps<IProps>(), {
 })
 
 defineEmits(['click'])
-
 </script>
 
 <template>
-  <Tooltip :disabled="!keyboard" :title="`快捷键: ${keyboard}`">
-    <div class="base-button"
-         @click="e => (!disabled && !loading) && $emit('click',e)"
-         :class="[
-             active && 'active',
-             size,
-             type,
-             (disabled||loading) && 'disabled',
-             !disabled && 'hvr-grow'
-         ]">
-      <span :style="{opacity:loading?0:1}"><slot></slot></span>
-      <Icon v-if="loading"
-            class="loading"
-            icon="eos-icons:loading"
-            width="18"
-            color="#ffffff"
-      />
-      <div class="key-notice" v-if="keyboard">
-        <Icon icon="bi:keyboard" width="14" color="#ffffff"/>
-        <span class="key">{{ keyboard }}</span>
-      </div>
+  <Tooltip :disabled="!keyboard" :title="`${keyboard}`">
+    <div
+      class="base-button"
+      v-bind="$attrs"
+      @click="e => !disabled && !loading && $emit('click', e)"
+      :class="[active && 'active', size, type, (disabled || loading) && 'disabled']"
+    >
+      <span :style="{ opacity: loading ? 0 : 1 }"><slot></slot></span>
+      <IconEosIconsLoading v-if="loading" class="loading" width="18" :color="type === 'info' ? '#000000' : '#ffffff'" />
     </div>
   </Tooltip>
 </template>
 
-<style scoped lang="scss">
-@import "@/assets/css/style";
+<style>
+:root {
+  --btn-primary: rgb(75, 85, 99);
+  --btn-primary-disabled: #90969e;
+  --btn-primary-hover: rgb(105, 121, 143);
+  --btn-info: white;
+  --btn-info-hover: #eaeaea;
+  --btn-orange: #facc15;
+  --btn-orange-hover: #bfac61;
+}
 
+html.dark {
+  --btn-info: #1b1b1b;
+  --btn-info-hover: #3a3a3a;
+}
+</style>
+
+<style scoped lang="scss">
 .base-button {
   cursor: pointer;
-  border-radius: 6rem;
-  padding: 0 15rem;
-  display: flex;
+  box-sizing: border-box;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: all .3s;
-  //background: #999;
-  //background: rgb(60, 63, 65);
-  //background: var(--color-second-bg);
-  height: 36rem;
-  line-height: 1;
-  position: relative;
+  outline: none;
+  text-align: center;
+  transition: all 0.3s;
+  user-select: none;
+  vertical-align: middle;
+  white-space: nowrap;
+  border-radius: 0.3rem;
+  padding: 0 0.9rem;
+  font-size: 0.9rem;
+  height: 2rem;
+  color: white;
+
+  & + .base-button {
+    margin-left: 1rem;
+  }
+
+  &.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    user-select: none;
+    color: rgba(#fff, 0.4);
+  }
 
   .loading {
     position: absolute;
   }
 
-  &.disabled {
-    opacity: .6;
-    cursor: not-allowed;
-    user-select: none;
-  }
-
   &.small {
-    height: 30rem;
-
-    & > span {
-      font-size: 13rem;
-    }
+    border-radius: 0.3rem;
+    padding: 0 0.6rem;
+    height: 1.6rem;
+    font-size: 0.8rem;
   }
 
   &.large {
-    height: 50rem;
-    font-size: 18rem;
-    padding: 0 22rem;
-    & > span {
-      font-size: 18rem;
-    }
+    padding: 0 1.3rem;
+    height: 2.4rem;
+    font-size: 0.9rem;
+    border-radius: 0.5rem;
   }
 
-
   & > span {
-    font-size: 16rem;
-    color: white;
+    line-height: 1;
+    transform: translateY(-5%);
 
     :deep(a) {
       color: white;
     }
   }
 
-  &:hover {
-    opacity: .7;
-  }
-
-
   &.primary {
-    background: rgb(75, 85, 99);
+    background: var(--btn-primary);
+
+    &.disabled {
+      opacity: 1;
+      background: var(--btn-primary-disabled);
+    }
+
+    &:hover:not(.disabled) {
+      background: var(--btn-primary-hover);
+    }
   }
 
-  &.link {
-    border-radius: 0;
-    border-bottom: 2px solid transparent;
+  &.info {
+    background: var(--btn-info);
+    border: 1px solid var(--color-main-text);
+    color: var(--color-main-text);
 
-    &:hover {
-      border-bottom: 2px solid var(--color-font-1);
+    &:hover:not(.disabled) {
+      background: var(--btn-info-hover);
+    }
+  }
+
+  &.orange {
+    background: var(--btn-orange);
+    color: black;
+
+    &:hover:not(.disabled) {
+      background: var(--btn-orange-hover);
+      color: rgba(0, 0, 0, 0.6);
     }
   }
 
   &.active {
-    opacity: .4;
-  }
-}
-
-.key-notice {
-  margin-left: 10rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12rem;
-  color: white;
-  //gap: 2rem;
-
-  .key {
-    transform: scale(0.8);
+    opacity: 0.4;
   }
 }
 </style>

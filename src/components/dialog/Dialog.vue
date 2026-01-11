@@ -1,24 +1,24 @@
 <script setup lang="ts">
-import {onMounted, onUnmounted, watch} from "vue";
-import Tooltip from "@/components/Tooltip.vue";
-import {Icon} from '@iconify/vue';
-import {useEventListener} from "@/hooks/event.ts";
-import {$ref} from "vue/macros";
-import BaseButton from "@/components/BaseButton.vue";
-import {useRuntimeStore} from "@/stores/runtime.ts";
+import { onMounted, onUnmounted, watch } from 'vue'
+import Tooltip from '@/components/base/Tooltip.vue'
+import { useEventListener } from '@/hooks/event'
+
+import BaseButton from '@/components/BaseButton.vue'
+import { useRuntimeStore } from '@/stores/runtime'
 
 export interface ModalProps {
-  modelValue?: boolean,
-  showClose?: boolean,
-  title?: string,
-  content?: string,
-  fullScreen?: boolean;
+  modelValue?: boolean
+  showClose?: boolean
+  title?: string
+  content?: string
+  fullScreen?: boolean
   padding?: boolean
   footer?: boolean
   header?: boolean
   confirmButtonText?: string
-  cancelButtonText?: string,
-  keyboard?: boolean,
+  cancelButtonText?: string
+  keyboard?: boolean
+  closeOnClickBg?: boolean
   confirm?: any
   beforeClose?: any
 }
@@ -26,20 +26,16 @@ export interface ModalProps {
 const props = withDefaults(defineProps<ModalProps>(), {
   modelValue: undefined,
   showClose: true,
+  closeOnClickBg: true,
   fullScreen: false,
   footer: false,
   header: true,
   confirmButtonText: '确认',
   cancelButtonText: '取消',
-  keyboard: true
+  keyboard: true,
 })
 
-const emit = defineEmits([
-  'update:modelValue',
-  'close',
-  'ok',
-  'cancel',
-])
+const emit = defineEmits(['update:modelValue', 'close', 'ok', 'cancel'])
 
 let confirmButtonLoading = $ref(false)
 let zIndex = $ref(999)
@@ -55,21 +51,21 @@ async function close() {
     return
   }
   if (props.beforeClose) {
-    if (!await props.beforeClose()) {
+    if (!(await props.beforeClose())) {
       return
     }
   }
   //记录停留时间，避免时间太短，弹框闪烁
-  let stayTime = Date.now() - openTime;
-  let closeTime = 300;
+  let stayTime = Date.now() - openTime
+  let closeTime = 300
   if (stayTime < 500) {
-    closeTime += 500 - stayTime;
+    closeTime += 500 - stayTime
   }
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     setTimeout(() => {
-      maskRef?.classList.toggle('bounce-out');
-      modalRef?.classList.toggle('bounce-out');
-    }, 500 - stayTime);
+      maskRef?.classList.toggle('bounce-out')
+      modalRef?.classList.toggle('bounce-out')
+    }, 500 - stayTime)
 
     setTimeout(() => {
       emit('update:modelValue', false)
@@ -81,27 +77,28 @@ async function close() {
         runtimeStore.modalList.splice(rIndex, 1)
       }
     }, closeTime)
-  });
+  })
 }
 
-watch(() => props.modelValue, n => {
-  // console.log('n', n)
-  if (n) {
-    id = Date.now()
-    runtimeStore.modalList.push({id, close})
-    zIndex = 999 + runtimeStore.modalList.length
-    visible = true
-  } else {
-    close()
+watch(
+  () => props.modelValue,
+  n => {
+    if (n) {
+      id = Date.now()
+      runtimeStore.modalList.push({ id, close })
+      zIndex = 999 + runtimeStore.modalList.length
+      visible = true
+    } else {
+      close()
+    }
   }
-})
+)
 
 onMounted(() => {
-  // console.log('props.modelValue', props.modelValue)
   if (props.modelValue === undefined) {
     visible = true
     id = Date.now()
-    runtimeStore.modalList.push({id, close})
+    runtimeStore.modalList.push({ id, close })
     zIndex = 999 + runtimeStore.modalList.length
   }
 })
@@ -139,44 +136,41 @@ async function cancel() {
   emit('cancel')
   await close()
 }
-
 </script>
 
 <template>
   <Teleport to="body">
-    <div class="modal-root" :style="{'z-index': zIndex}" v-if="visible">
-      <div class="modal-mask"
-           ref="maskRef"
-           v-if="!fullScreen"
-           @click.stop="close"></div>
-      <div class="modal"
-           ref="modalRef"
-           :class="[
-                fullScreen?'full':'window'
-            ]"
-      >
+    <div class="modal-root" :style="{ 'z-index': zIndex }" v-if="visible">
+      <div
+        class="modal-mask"
+        ref="maskRef"
+        v-if="!fullScreen"
+        @click.stop="closeOnClickBg && close()"
+      ></div>
+      <div class="modal" ref="modalRef" :class="[fullScreen ? 'full' : 'window']">
         <Tooltip title="关闭">
-          <Icon @click="close"
-                v-if="showClose"
-                class="close hvr-grow pointer"
-                width="24" color="#929596"
-                icon="ion:close-outline"/>
+          <IconFluentDismiss20Regular
+            @click="close"
+            v-if="showClose"
+            class="close cursor-pointer"
+            width="24"
+          />
         </Tooltip>
         <div class="modal-header" v-if="header">
           <div class="title">{{ props.title }}</div>
         </div>
-        <div class="modal-body" :class="{padding}">
+        <div class="modal-body" :class="{ padding }">
           <slot></slot>
-          <div v-if="content" class="content">{{ content }}</div>
+          <div v-if="content" class="content max-h-60vh">{{ content }}</div>
         </div>
         <div class="modal-footer" v-if="footer">
-          <div class="left">
+          <div class="left flex items-end">
+            <slot name="footer-left"></slot>
           </div>
           <div class="right">
-            <BaseButton type="link" @click="cancel">{{ cancelButtonText }}</BaseButton>
-            <BaseButton
-                :loading="confirmButtonLoading"
-                @click="ok">{{ confirmButtonText }}
+            <BaseButton type="info" @click="cancel">{{ cancelButtonText }}</BaseButton>
+            <BaseButton id="dialog-ok" :loading="confirmButtonLoading" @click="ok"
+              >{{ confirmButtonText }}
             </BaseButton>
           </div>
         </div>
@@ -186,24 +180,14 @@ async function cancel() {
 </template>
 
 <style scoped lang="scss">
-@import "@/assets/css/variable.scss";
-
-$modal-mask-bg: rgba(#000, .45);
-$radius: 24rem;
 $time: 0.3s;
-$header-height: 60rem;
 
 @keyframes bounce-in {
   0% {
     opacity: 0;
-    transform: scale(0);
-  }
-  50% {
-    transform: scale(1.15);
   }
   100% {
     opacity: 1;
-    transform: scale(1);
   }
 }
 
@@ -228,48 +212,29 @@ $header-height: 60rem;
 }
 
 .modal-root {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  @apply fixed top-0 left-0 z-999 flex items-center justify-center w-full h-full overflow-hidden;
 
   .modal-mask {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: $modal-mask-bg;
-    transition: background 0.3s;
+    @apply fixed top-0 left-0 w-full h-full transition-all duration-300;
+    background: rgba(#000, 0.6);
     animation: fade-in $time;
 
     &.bounce-out {
-      background: transparent;
+      @apply bg-transparent;
     }
   }
 
   .window {
-    //width: 75vw;
-    //height: 70vh;
-    box-shadow: var(--shadow);
-    border-radius: $radius;
     animation: bounce-in $time ease-out;
+    @apply shadow-lg rounded-lg;
 
     &.bounce-out {
-      transform: scale(0);
       opacity: 0;
     }
   }
 
   .full {
-    width: 100vw;
-    height: 100vh;
+    @apply w-full h-full;
     animation: bounce-in-full $time ease-out;
 
     &.bounce-out {
@@ -279,93 +244,35 @@ $header-height: 60rem;
   }
 
   .modal {
-    position: relative;
-    background: var(--color-second-bg);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    transition: transform $time, opacity $time;
+    @apply relative overflow-hidden flex flex-col transition-all duration-300;
+    background: var(--color-card-bg);
 
     .close {
-      position: absolute;
-      right: 20rem;
-      top: 20rem;
-      z-index: 999;
+      @apply absolute right-1.2rem top-1.2rem z-999;
     }
 
     .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 24rem 24rem 16rem;
-      border-radius: $radius $radius 0 0;
+      @apply flex justify-between items-center p-5 pb-0 rounded-t-lg;
 
       .title {
-        color: var(--color-font-1);
-        font-weight: bold;
-        font-size: 24rem;
-        line-height: 33rem;
+        @apply font-bold text-xl;
       }
     }
 
     .modal-body {
-      box-sizing: border-box;
-      color: rgba(255, 255, 255, 0.8);
-      font-weight: 400;
-      font-size: 18rem;
-      line-height: 27rem;
-      width: 100%;
-      flex: 1;
-      overflow: hidden;
-      display: flex;
+      @apply box-border text-main-text font-normal text-base leading-6 w-full flex-1 overflow-hidden flex;
 
       &.padding {
-        padding: 4rem 24rem 24rem;
+        @apply p-1 px-5;
       }
 
       .content {
-        width: 350rem;
-        color: var(--color-font-1);
-        padding: 4rem 24rem 24rem;
+        @apply w-64 p-2 px-4 pb-4;
       }
     }
 
     .modal-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16rem 24rem;
-      color: #fff;
-      font-size: 18rem;
-      background: rgba(0, 0, 0, .2);
-      border-radius: 0 0 24rem 24rem;
-
-      .left {
-        display: flex;
-        align-items: center;
-        height: 100%;
-
-        .text {
-          color: white;
-          font-size: 16rem;
-          cursor: pointer;
-        }
-
-        &.active {
-          .text {
-            color: white;
-          }
-        }
-      }
-
-      .right {
-        display: flex;
-        flex: 1;
-        align-items: center;
-        justify-content: flex-end;
-        height: 100%;
-        gap: var(--space);
-      }
+      @apply flex justify-between p-5;
     }
   }
 }

@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import {$computed, $ref} from "vue/macros";
 import {watch} from "vue";
-import {DictResource} from "@/types.ts";
-import DictItem from "@/components/list/DictItem.vue";
+import type {DictResource} from "@/types/types.ts";
 import DictList from "@/components/list/DictList.vue";
 
 const props = defineProps<{
@@ -27,14 +25,17 @@ watch(() => props.groupByTag, () => {
 </script>
 
 <template>
-  <div class="dict-group">
-    <div class="category">{{ category }}</div>
-    <div class="tags">
-      <div class="tag" :class="i === currentTag &&'active'"
-           @click="currentTag = i"
-           v-for="i in Object.keys(groupByTag)">{{ i }}
+  <div>
+    <div class="flex items-center">
+      <div class="category shrink-0">{{ category }}：</div>
+      <div class="tags">
+        <div class="tag" :class="i === currentTag &&'active'"
+             @click="currentTag = i"
+             v-for="i in Object.keys(groupByTag)">{{ i }}
+        </div>
       </div>
     </div>
+
     <DictList
         @selectDict="e => emit('selectDict',e)"
         :list="list"
@@ -43,32 +44,66 @@ watch(() => props.groupByTag, () => {
 </template>
 
 <style scoped lang="scss">
-.dict-group {
-  color: var(--color-font-1);
-  margin-bottom: 40rem;
-  //border-bottom: 1px dashed gray;
-
-  .category {
-    font-size: 24rem;
-    padding-bottom: 10rem;
-    border-bottom: 1px dashed gray;
-  }
-}
 
 .tags {
   display: flex;
   flex-wrap: wrap;
-  margin: 10rem 0;
+  margin: 1rem 0;
 
   .tag {
     color: var(--color-font-1);
     cursor: pointer;
-    padding: 5rem 10rem;
-    border-radius: 20rem;
+    padding: 0.4rem 1rem;
+    border-radius: 2rem;
 
     &.active {
       color: var(--color-font-active-1);
       background: gray;
+    }
+  }
+}
+
+// 移动端适配
+@media (max-width: 768px) {
+  .flex.items-center {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+
+    .category {
+      font-size: 1rem;
+      font-weight: bold;
+    }
+
+    .tags {
+      margin: 0.5rem 0;
+      gap: 0.3rem;
+
+      .tag {
+        padding: 0.3rem 0.8rem;
+        font-size: 0.9rem;
+        min-height: 44px;
+        min-width: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+  }
+}
+
+// 超小屏幕适配
+@media (max-width: 480px) {
+  .flex.items-center {
+    .category {
+      font-size: 0.9rem;
+    }
+
+    .tags {
+      .tag {
+        padding: 0.2rem 0.6rem;
+        font-size: 0.8rem;
+      }
     }
   }
 }

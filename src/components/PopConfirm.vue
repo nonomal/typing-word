@@ -1,13 +1,31 @@
 <script lang="jsx">
-import {nextTick, Teleport, Transition} from "vue";
+import {Teleport, Transition} from 'vue'
+import BaseButton from "@/components/BaseButton.vue";
 
 export default {
   name: "PopConfirm",
+  components: {
+    Teleport,
+    Transition,
+    BaseButton
+  },
   props: {
     title: {
-      type: String,
+      type: [String, Array],
       default() {
         return ''
+      },
+      validator(value) {
+        // Validate that array items have the correct structure
+        if (Array.isArray(value)) {
+          return value.every(item =>
+            typeof item === 'object' &&
+            item !== null &&
+            typeof item.text === 'string' &&
+            ['normal', 'bold', 'red', 'redBold'].includes(item.type)
+          )
+        }
+        return typeof value === 'string'
       }
     },
     disabled: {
@@ -15,6 +33,17 @@ export default {
       default() {
         return false
       }
+    }
+  },
+  computed: {
+    titleItems() {
+      if (typeof this.title === 'string') {
+        return [{ text: this.title, type: 'normal' }]
+      }
+      if (Array.isArray(this.title)) {
+        return this.title
+      }
+      return []
     }
   },
   data() {
@@ -31,14 +60,35 @@ export default {
     })
   },
   methods: {
+    getTextStyle(type) {
+      const styles = {
+        normal: {
+          fontWeight: 'normal',
+          color: 'inherit'
+        },
+        bold: {
+          fontWeight: 'bold',
+          color: 'inherit'
+        },
+        red: {
+          fontWeight: 'normal',
+          color: 'red'
+        },
+        redBold: {
+          fontWeight: 'bold',
+          color: 'red'
+        }
+      }
+      return styles[type] || styles.normal
+    },
     showPop(e) {
-      if (this.disabled) return
+      if (this.disabled) return this.$emit('confirm')
       e?.stopPropagation()
       let rect = e.target.getBoundingClientRect()
       this.show = true
-      nextTick(() => {
+      this.$nextTick(() => {
         let tip = this.$refs?.tip?.getBoundingClientRect()
-        console.log('rect', rect, tip)
+        // console.log('rect', rect, tip)
         if (!tip) return
         if (rect.top < 150) {
           this.$refs.tip.style.top = rect.top + rect.height + tip.height + 30 + 'px'
@@ -56,18 +106,26 @@ export default {
   render() {
     let Vnode = this.$slots.default()[0]
     return (
-        <div class="pop-confirm">
+        <div class="pop-confirm leading-none">
           <Teleport to="body">
-            <Transition>
+            <Transition name="fade">
               {
                   this.show && (
-                      <div ref="tip" className="pop-confirm-content">
-                        <div className="text">
-                          {this.title}
+                      <div ref="tip" class="pop-confirm-content shadow-2xl">
+                        <div class="w-52 title-content">
+                          {this.titleItems.map((item, index) => (
+                            <div
+                              key={index}
+                              style={this.getTextStyle(item.type)}
+                              class="title-item"
+                            >
+                              {item.text}
+                            </div>
+                          ))}
                         </div>
-                        <div className="options">
-                          <div onClick={() => this.show = false}>取消</div>
-                          <div className="main" onClick={() => this.confirm()}>确认</div>
+                        <div class="options">
+                          <BaseButton type="info" size="small" onClick={() => this.show = false}>取消</BaseButton>
+                          <BaseButton size="small" onClick={() => this.confirm()}>确认</BaseButton>
                         </div>
                       </div>
                   )
@@ -81,43 +139,24 @@ export default {
 }
 </script>
 <style lang="scss" scoped>
-$bg-color: rgb(226, 226, 226);
-
 .pop-confirm-content {
-  position: fixed;
   background: var(--color-tooltip-bg);
-  padding: 15rem;
-  border-radius: 4rem;
-  transform: translate(-50%, calc(-100% - 10rem));
-  box-shadow: 0 0 6px 1px var(--color-tooltip-shadow);
-  z-index: 999;
+  transform: translate(-50%, calc(-100% - .6rem));
+  @apply fixed z-9999 shadow-2xl rounded-lg p-3;
 
-  .text {
-    color: var(--color-font-1);
-    text-align: start;
-    font-size: 14rem;
-    width: 150rem;
-    min-width: 150rem;
+  .title-content {
+    .title-item {
+      margin-bottom: 0.25rem;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
   }
 
   .options {
-    margin-top: 15rem;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    gap: 12rem;
-    font-size: 12rem;
-
-    div {
-      cursor: pointer;
-    }
-
-    .main {
-      color: gray;
-      background: $bg-color;
-      padding: 3rem 10rem;
-      border-radius: 4rem;
-    }
+    margin-top: .9rem;
+    text-align: right;
   }
 }
 </style>
